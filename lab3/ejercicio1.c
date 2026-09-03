@@ -69,7 +69,6 @@ int main(void)
     GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1, 
                      GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
-    // Estado inicial: 1 LED encendido (como muestra la imagen de la guía)
     int state = 1;
 
     while(1)
