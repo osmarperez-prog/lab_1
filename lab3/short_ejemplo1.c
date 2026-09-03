@@ -89,15 +89,13 @@ main(void)
     //
     while(1)
     {
-        // Paso A: Encender solo PN0 (LED D2)
         GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0);
         SysCtlDelay(delay_1s);
 
-        // Paso B: Encender también PN1 (ambos quedan activos: D1 y D2)
         GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0 | GPIO_PIN_1);
         SysCtlDelay(delay_1s);
 
-        // Paso C: Apagar ambos LEDs
+        
         GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0x00);
         SysCtlDelay(delay_1s);
     }
