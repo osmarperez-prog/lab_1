@@ -37,34 +37,25 @@ __error__(char *pcFilename, uint32_t ui32Line)
 }
 #endif
 
-//*****************************************************************************
-//
-// Blink the on-board LED.
-//
-//*****************************************************************************
 int main(void)
 {
-// 1. Reloj a 120 MHz
+// Reloj a 120 MHz
 
 //    uint32_t g_ui32SysClock = SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480), 120000000);
     SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN | SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480), 120000000);
 
-    //
-    // 2. Habilitar energía en los puertos N, F y J
-    //
+    // energía de los tres puertos (N, F y J)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
 
-
-    //
-    // Esperar a que ambos puertos estén listos    //
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPION)||
-          !SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOF)||
+    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPION) || 
+          !SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOF) || 
           !SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOJ))
     {
     }
-    // 3. Configurar los pines de ambos puertos como SALIDAS
+
+    // Configurar salidas (LEDs) y entradas con Pull-Up 
     GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1);
     GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4);
 
@@ -72,52 +63,97 @@ int main(void)
     GPIOPadConfigSet(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1, 
                      GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
-    // Estado inicial: 1 LED encendido (como muestra la imagen de la guía)
-    int state = 1;
+
+    int counter = 0;
 
     while(1)
     {
-        // Botón 1 (PJ0): Incrementa si no ha llegado al máximo (4)
+        // Botón 1 (PJ0)
         if(GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0) == 0)
         {
-            SysCtlDelay(2000000); // Antirrebote (~50 ms)
-            if(state < 4) 
+            SysCtlDelay(2000000); // Antirrebote
+            if(GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0) == 0)
             {
-                state++;
+                if(counter < 15) counter++;
+                while(GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0) == 0);
             }
-            while(GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_0) == 0); // Esperar que sueltes
         }
 
-        // Botón 2 (PJ1): Decrementa si no ha llegado al mínimo (1)
+        // Botón 2 (PJ1): Decrementa 
         if(GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1) == 0)
         {
-            SysCtlDelay(2000000); // Antirrebote (~50 ms)
-            if(state > 1) 
+            SysCtlDelay(2000000);
+            if(GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1) == 0)
             {
-                state--;
+                if(counter > 0) counter--;
+                while(GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1) == 0); 
             }
-            while(GPIOPinRead(GPIO_PORTJ_BASE, GPIO_PIN_1) == 0); // Esperar que sueltes
         }
 
-        // Actualización directa según la figura de la guía
-        switch(state)
+        // Mapeo: Bit 3 (8) = PN1 | Bit 2 (4) = PN0 | Bit 1 (2) = PF4 | Bit 0 (1) = PF0
+        switch(counter)
         {
-            case 1: // 1 LED: PN1
+            case 0: // 0000
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, 0);
+                break;
+            case 1: // 0001
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_0);
+                break;
+            case 2: // 0010
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_4);
+                break;
+            case 3: // 0011
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_0 | GPIO_PIN_4);
+                break;
+            case 4: // 0100
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, 0);
+                break;
+            case 5: // 0101
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_0);
+                break;
+            case 6: // 0110
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_4);
+                break;
+            case 7: // 0111
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_0 | GPIO_PIN_4);
+                break;
+            case 8: // 1000
                 GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_1);
                 GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, 0);
                 break;
-
-            case 2: // 2 LEDs: PN1 y PN0
+            case 9: // 1001
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_1);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_0);
+                break;
+            case 10: // 1010
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_1);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_4);
+                break;
+            case 11: // 1011
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_1);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_0 | GPIO_PIN_4);
+                break;
+            case 12: // 1100
                 GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0 | GPIO_PIN_1);
                 GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, 0);
                 break;
-
-            case 3: // 3 LEDs: PN1, PN0 y PF4
+            case 13: // 1101
+                GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0 | GPIO_PIN_1);
+                GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_0);
+                break;
+            case 14: // 1110
                 GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0 | GPIO_PIN_1);
                 GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_4);
                 break;
-
-            case 4: // 4 LEDs: Todos encendidos
+            case 15: // 1111
                 GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_0 | GPIO_PIN_1);
                 GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, GPIO_PIN_0 | GPIO_PIN_4);
                 break;
